@@ -1,16 +1,11 @@
 package com.example.mysmall.caipiao;
 
-import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
-import android.text.SpannableString;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
-import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,6 +28,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -49,6 +45,7 @@ import rx.schedulers.Schedulers;
 public class MainActivity extends AppCompatActivity {
 
     private TextView textView;
+    private Set<CaiPiao> mCaiPiaos = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +56,22 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.create).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                caipiao();
+                if(mCaiPiaos != null) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            final CaiPiao caiPiao = getCaiPiao();
+                            new Handler(getMainLooper()).post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    textView.setText(caiPiao.toString());
+                                }
+                            });
+                        }
+                    }).start();
+                } else {
+                    caipiao();
+                }
             }
         });
     }
@@ -166,70 +178,25 @@ public class MainActivity extends AppCompatActivity {
         }).scan(new Func2<Set<CaiPiao>, Set<CaiPiao>, Set<CaiPiao>>() {
             @Override
             public Set<CaiPiao> call(Set<CaiPiao> caiPiaos, Set<CaiPiao> caiPiaos2) {
-                System.out.println("淡定  kajshkj    ");
                 caiPiaos.addAll(caiPiaos2);
                 return caiPiaos;
             }
         })
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(Schedulers.newThread())
-                .last().doOnNext(new Action1<Set<CaiPiao>>() {
+        .subscribeOn(Schedulers.newThread())
+        .observeOn(Schedulers.newThread())
+        .last()
+        .map(new Func1<Set<CaiPiao>, CharSequence>() {
             @Override
-            public void call(Set<CaiPiao> caiPiaos) {
-                try {
-                    xuliehua(caiPiaos);
-                } catch (IOException e) {
-                    e.printStackTrace();
+            public CharSequence call(Set<CaiPiao> caiPiaos) {
+                CaiPiao caiPiao = getCaiPiao();
+
+                if (caiPiaos.contains(caiPiao)) {
+                    return "牛B的人生  " + caiPiao;
+                } else {
+                    return caiPiao.toString();
                 }
             }
-        })
-                .map(new Func1<Set<CaiPiao>, CharSequence>() {
-                    @Override
-                    public CharSequence call(Set<CaiPiao> caiPiaos) {
-
-                        Random random = new Random();
-
-                        Set<String> myset = new HashSet<String>();
-
-                        final StringBuilder stringBuilder = new StringBuilder();
-                        for (int i = 0; i < 100; i++) {
-                            myset.add(random.nextInt(32) + 1 + "");
-                            if (myset.size() == 6) {
-                                List<Integer> hshs = new ArrayList();
-                                for (String ccc : myset) {
-                                    hshs.add(new Integer(ccc));
-                                }
-                                Collections.sort(hshs);
-                                for (Integer inte : hshs) {
-                                    stringBuilder.append(inte + "   ");
-                                }
-                                break;
-                            }
-                        }
-                        int blue = random.nextInt(15) + 1;
-                        stringBuilder.append(blue);
-                        final CaiPiao caiPiao = new CaiPiao("1", new ArrayList<String>(myset), blue);
-
-                        if (caiPiaos.contains(caiPiao)) {
-                            return "牛B的人生  " + caiPiao;
-                        } else {
-                            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
-                            for (Integer inte : caiPiao.getReds()) {
-                                String source = inte + "";
-                                SpannableString msp = new SpannableString(source);
-                                msp.setSpan(new ForegroundColorSpan(Color.RED), 0, source.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                spannableStringBuilder.append(msp);
-                                spannableStringBuilder.append("    ");
-                            }
-
-                            String blue1 = caiPiao.getBlue() + "";
-                            SpannableString msp = new SpannableString(blue1);
-                            msp.setSpan(new ForegroundColorSpan(Color.BLUE), 0, blue1.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            spannableStringBuilder.append(msp);
-                            return spannableStringBuilder.toString();
-                        }
-                    }
-                }).subscribe(new Action1<CharSequence>() {
+        }).subscribe(new Action1<CharSequence>() {
             @Override
             public void call(final CharSequence s) {
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
@@ -241,6 +208,42 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    private CaiPiao getCaiPiao() {
+        Random random = new Random();
+
+        Set<String> myset = new HashSet<String>();
+
+        final StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            myset.add(random.nextInt(32) + 1 + "");
+            if (myset.size() == 6) {
+                List<Integer> hshs = new ArrayList();
+                for (String ccc : myset) {
+                    hshs.add(new Integer(ccc));
+                }
+                Collections.sort(hshs);
+                for (Integer inte : hshs) {
+                    stringBuilder.append(inte + "   ");
+                }
+                break;
+            }
+        }
+        int blue = random.nextInt(15) + 1;
+        stringBuilder.append(blue);
+        Date date = new Date(System.currentTimeMillis());
+        final CaiPiao caiPiao = new CaiPiao(date.getYear() + date.getMonth() + "",
+                new ArrayList<String>(myset), blue);
+
+        mCaiPiaos.add(caiPiao);
+        try {
+            xuliehua(mCaiPiaos);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return caiPiao;
     }
 
     private void xuliehua(Set<CaiPiao> caiPiaos) throws IOException {
@@ -264,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
         while ((len = inStream.read(buffer)) != -1) {
             outStream.write(buffer, 0, len);
         }
-        byte[] data = outStream.toByteArray();//网页的二进制数据
+        byte[] data = outStream.toByteArray();
         outStream.close();
         inStream.close();
         return data;
